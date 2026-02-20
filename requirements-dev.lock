@@ -41,3 +41,5 @@ telethon==1.42.0
 typing-extensions==4.15.0
     # via anyio
     # via beautifulsoup4
+yt-dlp==2026.2.4
+    # via cooking

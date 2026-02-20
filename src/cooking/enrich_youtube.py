@@ -3,9 +3,14 @@ import re
 import base64
 import httpx
 from bs4 import BeautifulSoup
+import subprocess
 
 YOUTUBE_REGEX = re.compile(
-    r"(https?://(?:www\.)?(?:youtube\.com/watch\?v=|youtu\.be/)([\w\-]+))"
+    r"(https?://(?:www\.)?(?:youtube\.com/(?:watch\?v=|shorts/)|youtu\.be/)([\w\-]+))"
+)
+
+YOUTUBE_REGEX = re.compile(
+    r"(https?://(?:www\.)?(?:youtube\.com/(?:watch\?v=|shorts/)|youtu\.be/)([\w\-]+))"
 )
 
 HASHTAG_REGEX = re.compile(r"#\w+")
@@ -20,19 +25,55 @@ def extract_video_id(url):
         return match.group(2)
     return None
 
-def get_youtube_metadata(url):
+def get_youtube_metadata(url, video_id):
+    try:
+        # Try using yt-dlp for reliable metadata extraction
+        result = subprocess.run(
+            [
+                "yt-dlp",
+                "-j",
+                "--no-warnings",
+                url
+            ],
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+        
+        if result.returncode == 0:
+            info = json.loads(result.stdout)
+            title = info.get("title")
+            description = info.get("description")
+            return title, description
+    except Exception as e:
+        print(f"yt-dlp not available, falling back to HTML parsing: {e}")
+
+    # Fallback: Parse HTML metadata
     try:
         with httpx.Client(timeout=10, follow_redirects=True, headers=HEADERS) as client:
             r = client.get(url)
             soup = BeautifulSoup(r.text, "html.parser")
 
-            # title
-            title_tag = soup.find("title")
-            title = title_tag.text.replace(" - YouTube", "").strip() if title_tag else None
+            # Try to find title
+            title = None
+            title_tag = soup.find("h1")
+            if title_tag:
+                title = title_tag.text.strip()
+            else:
+                title_tag = soup.find("title")
+                if title_tag:
+                    title = title_tag.text.replace(" - YouTube", "").strip()
 
-            # description
+            # Try to find description
+            description = None
             desc_tag = soup.find("meta", attrs={"name": "description"})
-            description = desc_tag["content"].strip() if desc_tag and desc_tag.get("content") else None
+            if desc_tag and desc_tag.get("content"):
+                description = desc_tag["content"].strip()
+            else:
+                # Try another meta tag
+                desc_tag = soup.find("meta", attrs={"property": "og:description"})
+                if desc_tag and desc_tag.get("content"):
+                    description = desc_tag["content"].strip()
 
             return title, description
     except Exception as e:
@@ -70,7 +111,7 @@ def main():
         for url in item.get("urls", []):
             video_id = extract_video_id(url)
             if video_id:
-                title, description = get_youtube_metadata(url)
+                title, description = get_youtube_metadata(url, video_id)
                 thumbnail_b64 = get_thumbnail_base64(video_id)
 
                 item["youtube_title"] = title
