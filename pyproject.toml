@@ -1,0 +1,29 @@
+[project]
+name = "cooking"
+version = "0.1.0"
+description = "Add your description here"
+authors = [
+    { name = "naz947", email = "nazeerbasha947@gmail.com" }
+]
+dependencies = [
+    "telethon>=1.42.0",
+    "python-dotenv>=1.0.0",
+    "httpx>=0.28.1",
+    "beautifulsoup4>=4.14.3",
+]
+readme = "README.md"
+requires-python = ">= 3.8"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.rye]
+managed = true
+dev-dependencies = []
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/cooking"]

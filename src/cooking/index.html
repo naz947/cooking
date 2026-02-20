@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Telegram Topic DB</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background: #0f172a;
+      color: #e2e8f0;
+    }
+
+    header {
+      padding: 16px;
+      background: #020617;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: none;
+      outline: none;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+      padding: 16px;
+    }
+
+    .card {
+      background: #020617;
+      border-radius: 12px;
+      overflow: hidden;
+      transition: transform 0.2s ease;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .card:hover {
+      transform: scale(1.02);
+    }
+
+    .thumb {
+      width: 100%;
+      height: 160px;
+      object-fit: cover;
+      background: #000;
+    }
+
+    .content {
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .title {
+      font-weight: bold;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+
+    .desc {
+      font-size: 12px;
+      color: #94a3b8;
+      line-height: 1.4;
+      max-height: 3.6em;
+      overflow: hidden;
+    }
+
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: auto;
+    }
+
+    .tag {
+      background: #1e293b;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <input type="text" id="search" placeholder="Search videos, descriptions, hashtags..." />
+</header>
+
+<div class="grid" id="grid"></div>
+
+<script>
+let DATA = [];
+
+fetch("data_enriched.json")
+  .then(res => res.json())
+  .then(data => {
+    DATA = data.filter(item => item.youtube_title); // only YouTube items
+    render(DATA);
+  });
+
+function render(items) {
+  const grid = document.getElementById("grid");
+  grid.innerHTML = "";
+
+  items.forEach(item => {
+    const url = item.urls?.[0] || "#";
+
+    const card = document.createElement("div");
+    card.className = "card";
+    card.onclick = () => window.open(url, "_blank");
+
+    const img = document.createElement("img");
+    img.className = "thumb";
+    if (item.youtube_thumbnail_base64) {
+      img.src = "data:image/jpeg;base64," + item.youtube_thumbnail_base64;
+    }
+
+    const content = document.createElement("div");
+    content.className = "content";
+
+    const title = document.createElement("div");
+    title.className = "title";
+    title.textContent = item.youtube_title || "No title";
+
+    const desc = document.createElement("div");
+    desc.className = "desc";
+    desc.textContent = item.youtube_description || "";
+
+    const tags = document.createElement("div");
+    tags.className = "tags";
+
+    (item.hashtags || []).forEach(tag => {
+      const span = document.createElement("span");
+      span.className = "tag";
+      span.textContent = tag;
+      tags.appendChild(span);
+    });
+
+    content.appendChild(title);
+    content.appendChild(desc);
+    content.appendChild(tags);
+
+    card.appendChild(img);
+    card.appendChild(content);
+    grid.appendChild(card);
+  });
+}
+
+document.getElementById("search").addEventListener("input", e => {
+  const q = e.target.value.toLowerCase();
+
+  const filtered = DATA.filter(item =>
+    (item.youtube_title || "").toLowerCase().includes(q) ||
+    (item.youtube_description || "").toLowerCase().includes(q) ||
+    (item.hashtags || []).join(" ").toLowerCase().includes(q)
+  );
+
+  render(filtered);
+});
+</script>
+
+</body>
+</html>
