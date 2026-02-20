@@ -108,7 +108,7 @@ let DATA = [];
 fetch("data_enriched.json")
   .then(res => res.json())
   .then(data => {
-    DATA = data.filter(item => item.youtube_title); // only YouTube items
+    DATA = data; // show all items
     render(DATA);
   });
 
@@ -127,6 +127,9 @@ function render(items) {
     img.className = "thumb";
     if (item.youtube_thumbnail_base64) {
       img.src = "data:image/jpeg;base64," + item.youtube_thumbnail_base64;
+    } else {
+      // Placeholder for missing thumbnails
+      img.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='280' height='160'%3E%3Crect fill='%23374151' width='280' height='160'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='14' fill='%239CA3AF' text-anchor='middle' dy='.3em'%3ENo Thumbnail%3C/text%3E%3C/svg%3E";
     }
 
     const content = document.createElement("div");
@@ -134,7 +137,7 @@ function render(items) {
 
     const title = document.createElement("div");
     title.className = "title";
-    title.textContent = item.youtube_title || "No title";
+    title.textContent = item.youtube_title || item.text || "No title";
 
     const desc = document.createElement("div");
     desc.className = "desc";
@@ -166,6 +169,7 @@ document.getElementById("search").addEventListener("input", e => {
   const filtered = DATA.filter(item =>
     (item.youtube_title || "").toLowerCase().includes(q) ||
     (item.youtube_description || "").toLowerCase().includes(q) ||
+    (item.text || "").toLowerCase().includes(q) ||
     (item.hashtags || []).join(" ").toLowerCase().includes(q)
   );
 
